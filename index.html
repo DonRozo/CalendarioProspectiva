@@ -63,6 +63,20 @@
       .fc .fc-toolbar{flex-wrap:wrap; gap:6px}
       .fc .fc-toolbar-title{font-size:18px}
     }
+  /* ===== Responsividad y textos completos ===== */
+    /* Evitar que hora y título se corten en mes/semana/día */
+    .fc-daygrid-event .fc-event-time,
+    .fc-daygrid-event .fc-event-title,
+    .fc-daygrid-event .fc-event-title-container,
+    .fc-timegrid-event .fc-event-time,
+    .fc-timegrid-event .fc-event-title{
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      line-height: 1.2;
+      display: inline;
+    }
+    .fc-daygrid-event{ height: auto !important; padding: 2px 4px; }
   </style>
 
   <!-- FullCalendar v6 -->
@@ -88,9 +102,12 @@
     </div>
 
     <div class="legend" id="legend"></div>
+    <div class="legend" aria-label="Convenciones">
+      <span class="pill"><span class="dot" style="background:#FF66C4"></span> Boletines estadísticos</span>
+      <span class="pill"><span class="dot" style="background:#1797D1"></span> Eventos</span>
+    </div>
     <div id="calendar"></div>
-    <div class="foot">* El filtro de datos se aplica por el año seleccionado usando <code>start_datetime</code> (fecha del evento) en AGOL.</div>
-  </div>
+    <div class="foot">* El filtro de datos se aplica por el año seleccionado.</div>
 
 <script>
 (function(){
