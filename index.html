@@ -41,6 +41,28 @@
     .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:.9rem}
     .dot{width:10px; height:10px; border-radius:50%}
     .foot{margin-top:18px; color:var(--muted); font-size:.85rem}
+  /* ===== Responsividad y textos completos ===== */
+    /* Permitir que los títulos de eventos hagan wrap y no se corten */
+    .fc-daygrid-event .fc-event-title, .fc-daygrid-event .fc-event-title-container{
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      line-height: 1.2;
+    }
+    .fc-daygrid-event{
+      height: auto !important;
+      padding: 2px 4px;
+    }
+    /* En móvil aprovecha todo el ancho y reduce márgenes */
+    @media (max-width: 640px){
+      .wrap{max-width:100%; padding:12px;}
+      h1{font-size:22px;}
+      .controls{gap:8px}
+      .controls input,.controls select{min-width:140px}
+      /* Compactar barra del calendario */
+      .fc .fc-toolbar{flex-wrap:wrap; gap:6px}
+      .fc .fc-toolbar-title{font-size:18px}
+    }
   </style>
 
   <!-- FullCalendar v6 -->
@@ -62,13 +84,12 @@
         <option value="Evento">Evento</option>
         <option value="Indicador">Indicador</option>
       </select>
-      <select id="yearSelect" title="Año">
-      </select>
+      <select id="yearSelect" title="Año"></select>
     </div>
 
     <div class="legend" id="legend"></div>
     <div id="calendar"></div>
-    <div class="foot">* El filtro de datos se aplica por el año seleccionado.</div>
+    <div class="foot">* El filtro de datos se aplica por el año seleccionado usando <code>start_datetime</code> (fecha del evento) en AGOL.</div>
   </div>
 
 <script>
@@ -97,12 +118,22 @@
   // ============== datos desde AGOL ==============
   async function fetchEventsByYear(year){
     const {start,end}=getYearUtcRange(year);
-    const where=`CreationDate >= timestamp '${start.toISOString().slice(0,19).replace('T',' ')}' AND CreationDate < timestamp '${end.toISOString().slice(0,19).replace('T',' ')}'`;
+    // Filtramos por la FECHA DEL EVENTO, no por CreationDate
+    const where=`start_datetime >= timestamp '${start.toISOString().slice(0,19).replace('T',' ')}' AND start_datetime < timestamp '${end.toISOString().slice(0,19).replace('T',' ')}'`;
     const url=`${SERVICE_BASE}/${LAYER_ID}/query`;
-    const params=new URLSearchParams({where,outFields:OUT_FIELDS.join(','),orderByFields:'start_datetime ASC',returnGeometry:false,f:'json'});
+    const params=new URLSearchParams({
+      where,
+      outFields:OUT_FIELDS.join(','),
+      orderByFields:'start_datetime ASC',
+      returnGeometry:false,
+      f:'json'
+    });
     const resp=await fetch(`${url}?${params.toString()}`);
     const data=await resp.json();
-    return data.features||[];
+    const features=data.features||[];
+
+    // Si el servicio limita la transferencia, manejaríamos paginación aquí.
+    return features;
   }
 
   function toCalendarEvents(features){
@@ -111,7 +142,7 @@
       const start=msToIso(a.start_datetime);
       let end=msToIso(a.end_datetime);
       if(!end&&start){end=new Date(new Date(start).getTime()+60*60*1000).toISOString();}
-      const color=a.color||CATEGORY_COLORS[a.category]||'#1797D1';
+      const color=(a.color && /^#?[0-9A-Fa-f]{3,6}$/.test(a.color)) ? (a.color.startsWith('#')? a.color : `#${a.color}`) : (CATEGORY_COLORS[a.category]||'#1797D1');
       return {id:a.objectid,title:a.title||'(Sin título)',start,end,url:a.url||null,extendedProps:{category:a.category},color};
     });
   }
@@ -126,22 +157,22 @@
     const calendarEl=document.getElementById('calendar');
 
     // Botones personalizados con íconos distintos
-    const customPrev = {
-      text: '⟨',
-      click(){ calendar.prev(); }
-    };
-    const customNext = {
-      text: '⟩',
-      click(){ calendar.next(); }
-    };
+    const customPrev = { text: '⟨', click(){ calendar.prev(); } };
+    const customNext = { text: '⟩', click(){ calendar.next(); } };
 
+    const isSmall = window.innerWidth < 640;
     const calendar=new FullCalendar.Calendar(calendarEl,{
       height:'auto',
-      initialView:'dayGridMonth',
-      headerToolbar:{ left:'prevCustom,nextCustom today', center:'title', right:'dayGridMonth,timeGridWeek,timeGridDay,listYear,multiMonthYear' },
+      initialView: isSmall ? 'listWeek' : 'dayGridMonth',
+      headerToolbar:{ left:'prevCustom,nextCustom today', center:'title', right: isSmall ? 'listWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay,listYear,multiMonthYear' },
       customButtons:{ prevCustom:customPrev, nextCustom:customNext },
       locale:'es', firstDay:1,
-      // Vista "Año completo" (12 meses)
+      expandRows:true,
+      fixedWeekCount:false,
+      dayMaxEvents:false,       // no limitar eventos por día
+      dayMaxEventRows:false,    // permitir crecimiento vertical
+      eventDisplay:'block',     // render tipo bloque con título completo
+      displayEventEnd:true,
       views:{
         multiMonthYear:{ type:'multiMonthYear', multiMonthMaxColumns:4, multiMonthMinWidth:180, titleFormat:{ year:'numeric' } }
       },
@@ -155,7 +186,6 @@
       const features = await fetchEventsByYear(year);
       window.__ALL_EVENTS__ = toCalendarEvents(features); // cache simple
       applyFilters();
-      // Si está en vista de año, mover fecha al 1 de enero de ese año
       if(calendar.view.type === 'multiMonthYear'){
         calendar.gotoDate(`${year}-01-01`);
       }
