@@ -4,67 +4,50 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Calendario – ArcGIS Hub</title>
-  <!-- Fuentes y estilos base -->
+
+  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
+
   <style>
     :root{
-      --brand-blue:#1797D1; /* Azul fuerte títulos y botones */
-      --brand-pink:#E0F2F7; /* Celeste para 'hoy' y botones activos */
-      --brand-light:#ffffff; /* Fondo blanco para celdas */
+      --brand-blue:#1797D1;   /* títulos/botones */
+      --brand-pink:#E0F2F7;   /* hoy / botón activo */
+      --brand-light:#ffffff;  /* celdas mes */
       --bg:#ffffff;
       --text:#1a1a1a;
       --muted:#6b7280;
     }
-    html, body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;}
+    html, body{
+      height:100%; margin:0; background:var(--bg); color:var(--text);
+      font-family:Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    }
     .wrap{max-width:1200px; margin:0 auto; padding:20px;}
     header{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
     h1{font-family:Montserrat, Roboto, sans-serif; font-weight:700; color:var(--brand-blue); margin:0; font-size:clamp(20px,2.5vw,32px); text-transform:uppercase;}
 
+    /* Controles */
     .controls{margin:15px 0; display:flex; flex-wrap:wrap; gap:12px;}
-    .controls input,.controls select{padding:8px 12px; font-size:1rem; border:1px solid #d1d5db; border-radius:8px;}
+    .controls input,.controls select{padding:8px 12px; font-size:1rem; border:1px solid #d1d5db; border-radius:8px; min-width:180px;}
 
-    /* FullCalendar overrides */
-    .fc{--fc-page-bg-color: var(--bg); --fc-border-color: #e5e7eb; --fc-neutral-text-color: var(--muted); --fc-text-color: var(--text);} 
+    /* FullCalendar theme overrides */
+    .fc{--fc-page-bg-color: var(--bg); --fc-border-color: #e5e7eb; --fc-neutral-text-color: var(--muted); --fc-text-color: var(--text);}
     .fc .fc-toolbar-title{font-family:Montserrat; color:var(--brand-blue); font-weight:700;}
     .fc .fc-button{background:var(--brand-blue); border:0; color:#fff; border-radius:10px;}
-    .fc .fc-button:hover{filter:brightness(1.05);} 
+    .fc .fc-button:hover{filter:brightness(1.05);}
     /* Texto negro cuando el botón está activo o presionado */
-    .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active{background:var(--brand-pink); color:#000;}
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active{background:var(--brand-pink); color:#000;}
 
-    /* Celdas del mes */
-    .fc .fc-daygrid-day{background:var(--brand-light);} /* blanco */
+    /* Mes: fondo claro y hoy destacado */
+    .fc .fc-daygrid-day{background:var(--brand-light);}
     .fc .fc-daygrid-day.fc-day-other{background:#f9fafb; color:#9ca3af;}
     .fc .fc-day-today{background:var(--brand-pink) !important; color:#000;}
 
-    .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 20px}
-    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:.9rem}
-    .dot{width:10px; height:10px; border-radius:50%}
-    .foot{margin-top:18px; color:var(--muted); font-size:.85rem}
-  /* ===== Responsividad y textos completos ===== */
-    /* Permitir que los títulos de eventos hagan wrap y no se corten */
-    .fc-daygrid-event .fc-event-title, .fc-daygrid-event .fc-event-title-container{
-      white-space: normal !important;
-      overflow: visible !important;
-      text-overflow: unset !important;
-      line-height: 1.2;
-    }
-    .fc-daygrid-event{
-      height: auto !important;
-      padding: 2px 4px;
-    }
-    /* En móvil aprovecha todo el ancho y reduce márgenes */
-    @media (max-width: 640px){
-      .wrap{max-width:100%; padding:12px;}
-      h1{font-size:22px;}
-      .controls{gap:8px}
-      .controls input,.controls select{min-width:140px}
-      /* Compactar barra del calendario */
-      .fc .fc-toolbar{flex-wrap:wrap; gap:6px}
-      .fc .fc-toolbar-title{font-size:18px}
-    }
-  /* ===== Responsividad y textos completos ===== */
-    /* Evitar que hora y título se corten en mes/semana/día */
+    /* Evitar truncado: hora y título con wrap en todas las vistas */
     .fc-daygrid-event .fc-event-time,
     .fc-daygrid-event .fc-event-title,
     .fc-daygrid-event .fc-event-title-container,
@@ -76,20 +59,27 @@
       line-height: 1.2;
       display: inline;
     }
-    .fc-daygrid-event{ height: auto !important; padding: 2px 4px; }
-  </style>
+    .fc-daygrid-event{ height:auto !important; padding:2px 4px; }
 
-  <!-- FullCalendar v6 -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/multimonth@6.1.15/index.global.min.js"></script>
+    .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 20px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:.9rem}
+    .dot{width:10px; height:10px; border-radius:50%}
+    .foot{margin-top:18px; color:var(--muted); font-size:.85rem}
+
+    /* Responsive */
+    @media (max-width: 640px){
+      .wrap{max-width:100%; padding:12px;}
+      h1{font-size:22px;}
+      .controls{gap:8px}
+      .controls input,.controls select{min-width:140px}
+      .fc .fc-toolbar{flex-wrap:wrap; gap:6px}
+      .fc .fc-toolbar-title{font-size:18px}
+    }
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <header>
-      <h1>Calendario</h1>
-    </header>
+    <header><h1>Calendario</h1></header>
 
     <div class="controls">
       <input type="text" id="searchBox" placeholder="Buscar evento..." />
@@ -102,133 +92,205 @@
     </div>
 
     <div class="legend" id="legend"></div>
+    <!-- Convenciones -->
     <div class="legend" aria-label="Convenciones">
       <span class="pill"><span class="dot" style="background:#FF66C4"></span> Boletines estadísticos</span>
       <span class="pill"><span class="dot" style="background:#1797D1"></span> Eventos</span>
     </div>
+
     <div id="calendar"></div>
     <div class="foot">* El filtro de datos se aplica por el año seleccionado.</div>
+  </div>
 
-<script>
-(function(){
-  const SERVICE_BASE = "https://services7.arcgis.com/lsxbLWF2l19Rmhqj/arcgis/rest/services/CalendarView/FeatureServer";
-  const LAYER_ID = 0;
-  const OUT_FIELDS = ["objectid","title","start_datetime","end_datetime","url","status","category","color","CreationDate"];
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/multimonth@6.1.15/index.global.min.js"></script>
 
-  const CATEGORY_COLORS = { "Evento":"#1797D1", "Indicador":"#E0F2F7" };
+  <script>
+  (function(){
+    // =================== CONFIG ===================
+    const SERVICE_BASE = "https://services7.arcgis.com/lsxbLWF2l19Rmhqj/arcgis/rest/services/CalendarView/FeatureServer";
+    const LAYER_ID = 0;
+    const OUT_FIELDS = ["objectid","title","start_datetime","end_datetime","url","status","category","color","CreationDate"];
 
-  // ================= utilidades =================
-  function buildYearRange(){
-    const now = new Date();
-    const current = now.getUTCFullYear();
-    const years = [];
-    for(let y=current-4; y<=current+2; y++) years.push(y);
-    return {years, current};
-  }
-  function getYearUtcRange(year){
-    const start=new Date(Date.UTC(year,0,1,0,0,0));
-    const end=new Date(Date.UTC(year+1,0,1,0,0,0));
-    return {start,end};
-  }
-  function msToIso(ms){ if(ms==null) return null; return new Date(ms).toISOString(); }
+    // Colores por categoría (fallback si no viene 'color')
+    const CATEGORY_COLORS = { "Evento":"#1797D1", "Indicador":"#FF66C4" };
 
-  // ============== datos desde AGOL ==============
-  async function fetchEventsByYear(year){
-    const {start,end}=getYearUtcRange(year);
-    // Filtramos por la FECHA DEL EVENTO, no por CreationDate
-    const where=`start_datetime >= timestamp '${start.toISOString().slice(0,19).replace('T',' ')}' AND start_datetime < timestamp '${end.toISOString().slice(0,19).replace('T',' ')}'`;
-    const url=`${SERVICE_BASE}/${LAYER_ID}/query`;
-    const params=new URLSearchParams({
-      where,
-      outFields:OUT_FIELDS.join(','),
-      orderByFields:'start_datetime ASC',
-      returnGeometry:false,
-      f:'json'
-    });
-    const resp=await fetch(`${url}?${params.toString()}`);
-    const data=await resp.json();
-    const features=data.features||[];
-
-    // Si el servicio limita la transferencia, manejaríamos paginación aquí.
-    return features;
-  }
-
-  function toCalendarEvents(features){
-    return features.map(f=>{
-      const a=f.attributes;
-      const start=msToIso(a.start_datetime);
-      let end=msToIso(a.end_datetime);
-      if(!end&&start){end=new Date(new Date(start).getTime()+60*60*1000).toISOString();}
-      const color=(a.color && /^#?[0-9A-Fa-f]{3,6}$/.test(a.color)) ? (a.color.startsWith('#')? a.color : `#${a.color}`) : (CATEGORY_COLORS[a.category]||'#1797D1');
-      return {id:a.objectid,title:a.title||'(Sin título)',start,end,url:a.url||null,extendedProps:{category:a.category},color};
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded',async function(){
-    // ====== Selector de año ======
-    const {years, current} = buildYearRange();
-    const yearSel = document.getElementById('yearSelect');
-    years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; yearSel.appendChild(o); });
-    yearSel.value = String(current);
-
-    const calendarEl=document.getElementById('calendar');
-
-    // Botones personalizados con íconos distintos
-    const customPrev = { text: '⟨', click(){ calendar.prev(); } };
-    const customNext = { text: '⟩', click(){ calendar.next(); } };
-
-    const isSmall = window.innerWidth < 640;
-    const calendar=new FullCalendar.Calendar(calendarEl,{
-      height:'auto',
-      initialView: isSmall ? 'listWeek' : 'dayGridMonth',
-      headerToolbar:{ left:'prevCustom,nextCustom today', center:'title', right: isSmall ? 'listWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay,listYear,multiMonthYear' },
-      customButtons:{ prevCustom:customPrev, nextCustom:customNext },
-      locale:'es', firstDay:1,
-      expandRows:true,
-      fixedWeekCount:false,
-      dayMaxEvents:false,       // no limitar eventos por día
-      dayMaxEventRows:false,    // permitir crecimiento vertical
-      eventDisplay:'block',     // render tipo bloque con título completo
-      displayEventEnd:true,
-      views:{
-        multiMonthYear:{ type:'multiMonthYear', multiMonthMaxColumns:4, multiMonthMinWidth:180, titleFormat:{ year:'numeric' } }
-      },
-      eventClick:function(info){ if(info.event.url){ info.jsEvent.preventDefault(); window.open(info.event.url,'_blank'); } },
-      eventTimeFormat:{hour:'2-digit',minute:'2-digit',meridiem:false},
-      noEventsContent:'No hay eventos para mostrar.'
-    });
-    calendar.render();
-
-    async function loadYear(year){
-      const features = await fetchEventsByYear(year);
-      window.__ALL_EVENTS__ = toCalendarEvents(features); // cache simple
-      applyFilters();
-      if(calendar.view.type === 'multiMonthYear'){
-        calendar.gotoDate(`${year}-01-01`);
-      }
+    // =================== UTIL =====================
+    function buildYearRange(){
+      const now = new Date();
+      const current = now.getUTCFullYear();
+      const years = [];
+      for(let y=current-4; y<=current+2; y++) years.push(y);
+      return {years, current};
     }
+    function getYearUtcRange(year){
+      const start = new Date(Date.UTC(year,0,1,0,0,0));
+      const end   = new Date(Date.UTC(year+1,0,1,0,0,0));
+      return {start,end};
+    }
+    function msToIso(ms){ if(ms==null) return null; return new Date(ms).toISOString(); }
 
-    function applyFilters(){
-      const term = (document.getElementById('searchBox').value||'').toLowerCase().trim();
-      const cat = (document.getElementById('categoryFilter').value||'').toLowerCase().trim();
-      const src = (window.__ALL_EVENTS__||[]).filter(ev=>{
-        const okTitle = !term || (ev.title||'').toLowerCase().includes(term);
-        const okCat = !cat || ((ev.extendedProps.category||'').toLowerCase()===cat);
-        return okTitle && okCat;
+    // ============== DATOS DESDE AGOL =============
+    // *** IMPORTANTE: se filtra por CreationDate (como acordamos) ***
+    async function fetchEventsByYear_CreationDate(year){
+      const {start,end} = getYearUtcRange(year);
+      const where =
+        `CreationDate >= timestamp '${start.toISOString().slice(0,19).replace('T',' ')}' `+
+        `AND CreationDate < timestamp '${end.toISOString().slice(0,19).replace('T',' ')}'`;
+
+      const url = `${SERVICE_BASE}/${LAYER_ID}/query`;
+      const params = new URLSearchParams({
+        where,
+        outFields: OUT_FIELDS.join(','),
+        orderByFields: 'start_datetime ASC',
+        returnGeometry: false,
+        f: 'json'
       });
-      calendar.removeAllEventSources();
-      calendar.addEventSource(src);
+      const resp = await fetch(`${url}?${params.toString()}`);
+      if(!resp.ok) throw new Error(`AGOL query error ${resp.status}`);
+      const data = await resp.json();
+      return data.features || [];
     }
 
-    // Eventos de UI
-    document.getElementById('searchBox').addEventListener('input', applyFilters);
-    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    yearSel.addEventListener('change', ()=> loadYear(parseInt(yearSel.value,10)) );
+    function toCalendarEvents(features){
+      return features.map(f=>{
+        const a = f.attributes || {};
+        const start = msToIso(a.start_datetime);
+        let end = msToIso(a.end_datetime);
+        if(!end && start){
+          end = new Date(new Date(start).getTime() + 60*60*1000).toISOString(); // +1h
+        }
+        // color: prioriza 'color', luego por categoría, luego azul por defecto
+        const col = (a.color && /^#?[0-9A-Fa-f]{3,6}$/.test(a.color))
+          ? (a.color.startsWith('#') ? a.color : `#${a.color}`)
+          : (CATEGORY_COLORS[a.category] || '#1797D1');
 
-    // Carga inicial (año actual)
-    loadYear(current);
-  });
-})();
-</script>
+        return {
+          id: a.objectid,
+          title: a.title || '(Sin título)',
+          start,
+          end,
+          url: a.url || null,
+          extendedProps: { category: a.category, status: a.status },
+          color: col
+        };
+      });
+    }
+
+    // =================== INIT UI ==================
+    document.addEventListener('DOMContentLoaded', async function(){
+      // Selector de año
+      const {years, current} = buildYearRange();
+      const yearSel = document.getElementById('yearSelect');
+      years.forEach(y=>{
+        const o = document.createElement('option');
+        o.value = y; o.textContent = y;
+        yearSel.appendChild(o);
+      });
+      yearSel.value = String(current);
+
+      const calendarEl = document.getElementById('calendar');
+
+      // Botones prev/next personalizados
+      let calendar; // se declara antes para acceder en handlers
+      const customPrev = { text: '⟨', click(){ calendar.prev(); } };
+      const customNext = { text: '⟩', click(){ calendar.next(); } };
+
+      const isSmall = window.innerWidth < 640;
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        height: 'auto',
+        initialView: isSmall ? 'listWeek' : 'dayGridMonth',
+        headerToolbar: {
+          left: 'prevCustom,nextCustom today',
+          center: 'title',
+          right: isSmall
+            ? 'listWeek,timeGridDay'
+            : 'dayGridMonth,timeGridWeek,timeGridDay,listYear,multiMonthYear'
+        },
+        customButtons: { prevCustom: customPrev, nextCustom: customNext },
+        locale: 'es',
+        firstDay: 1,
+        expandRows: true,
+        fixedWeekCount: false,
+        dayMaxEvents: false,
+        dayMaxEventRows: false,
+        eventDisplay: 'block',
+        displayEventEnd: true,
+        // Vistas: Mes y Semana sin fines de semana
+        views: {
+          dayGridMonth: { weekends: false },
+          timeGridWeek: { weekends: false },
+          multiMonthYear: {  // Año completo (12 meses)
+            type: 'multiMonthYear',
+            multiMonthMaxColumns: 4,
+            multiMonthMinWidth: 180,
+            titleFormat: { year: 'numeric' }
+          }
+        },
+        eventClick(info){
+          if(info.event.url){
+            info.jsEvent.preventDefault();
+            window.open(info.event.url, '_blank', 'noopener');
+          }
+        },
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: false },
+        noEventsContent: 'No hay eventos para mostrar.'
+      });
+
+      calendar.render();
+
+      // Carga y filtros
+      async function loadYear(year){
+        const features = await fetchEventsByYear_CreationDate(year);
+        window.__ALL_EVENTS__ = toCalendarEvents(features);
+        applyFilters();
+        if(calendar.view.type === 'multiMonthYear'){
+          calendar.gotoDate(`${year}-01-01`);
+        }
+      }
+
+      function renderLegend(events){
+        const legend = document.getElementById('legend');
+        legend.innerHTML = '';
+        const seen = new Map();
+        events.forEach(ev=>{
+          const key = ev.extendedProps.category || 'Sin categoría';
+          if(!seen.has(key)) seen.set(key, ev.color || CATEGORY_COLORS[key] || '#64748b');
+        });
+        const frag = document.createDocumentFragment();
+        seen.forEach((val,key)=>{
+          const pill = document.createElement('span');
+          pill.className = 'pill';
+          pill.innerHTML = `<span class="dot" style="background:${val}"></span> ${key}`;
+          frag.appendChild(pill);
+        });
+        legend.appendChild(frag);
+      }
+
+      function applyFilters(){
+        const term = (document.getElementById('searchBox').value || '').toLowerCase().trim();
+        const cat  = (document.getElementById('categoryFilter').value || '').toLowerCase().trim();
+        const src = (window.__ALL_EVENTS__ || []).filter(ev=>{
+          const okTitle = !term || (ev.title||'').toLowerCase().includes(term);
+          const okCat   = !cat  || ((ev.extendedProps.category||'').toLowerCase() === cat);
+          return okTitle && okCat;
+        });
+        calendar.removeAllEventSources();
+        calendar.addEventSource(src);
+        renderLegend(src);
+      }
+
+      document.getElementById('searchBox').addEventListener('input', applyFilters);
+      document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+      yearSel.addEventListener('change', ()=> loadYear(parseInt(yearSel.value,10)));
+
+      // Carga inicial
+      loadYear(current);
+    });
+  })();
+  </script>
 </body>
 </html>
