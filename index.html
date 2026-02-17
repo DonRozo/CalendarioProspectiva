@@ -246,9 +246,20 @@
       async function loadYear(year){
         const features = await fetchEventsByYear_CreationDate(year);
         window.__ALL_EVENTS__ = toCalendarEvents(features);
+
+        // Aplica filtros (texto/categoría) sobre el nuevo set del año
         applyFilters();
+
+        // --- IMPORTANTE ---
+        // Al cambiar el año, mueve la vista a ese año manteniendo el mes actual.
+        // Si estás en vista "Año" (multiMonthYear), lleva a enero del año seleccionado.
+        const currentDate = calendar.getDate(); // fecha actual de la vista (puede estar en 2026, etc.)
+
         if(calendar.view.type === 'multiMonthYear'){
           calendar.gotoDate(`${year}-01-01`);
+        } else {
+          // Mantiene el mes y se ubica en el día 1 de ese mes, pero en el año seleccionado
+          calendar.gotoDate(new Date(year, currentDate.getMonth(), 1));
         }
       }
 
