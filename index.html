@@ -20,6 +20,8 @@
       --bg:#ffffff;
       --text:#1a1a1a;
       --muted:#6b7280;
+      --evento-color:#1797D1;
+      --indicador-color:#FF66C4;
     }
     html, body{
       height:100%; margin:0; background:var(--bg); color:var(--text);
@@ -38,16 +40,13 @@
     .fc .fc-toolbar-title{font-family:Montserrat; color:var(--brand-blue); font-weight:700;}
     .fc .fc-button{background:var(--brand-blue); border:0; color:#fff; border-radius:10px;}
     .fc .fc-button:hover{filter:brightness(1.05);}
-    /* Texto negro cuando el botón está activo o presionado */
     .fc .fc-button-primary:not(:disabled).fc-button-active,
     .fc .fc-button-primary:not(:disabled):active{background:var(--brand-pink); color:#000;}
 
-    /* Mes: fondo claro y hoy destacado */
     .fc .fc-daygrid-day{background:var(--brand-light);}
     .fc .fc-daygrid-day.fc-day-other{background:#f9fafb; color:#9ca3af;}
     .fc .fc-day-today{background:var(--brand-pink) !important; color:#000;}
 
-    /* Evitar truncado: hora y título con wrap en todas las vistas */
     .fc-daygrid-event .fc-event-time,
     .fc-daygrid-event .fc-event-title,
     .fc-daygrid-event .fc-event-title-container,
@@ -66,7 +65,6 @@
     .dot{width:10px; height:10px; border-radius:50%}
     .foot{margin-top:18px; color:var(--muted); font-size:.85rem}
 
-    /* Responsive */
     @media (max-width: 640px){
       .wrap{max-width:100%; padding:12px;}
       h1{font-size:22px;}
@@ -89,17 +87,31 @@
         <option value="Indicador">Indicador</option>
       </select>
       <select id="yearSelect" title="Año"></select>
+      <select id="monthSelect" title="Mes">
+        <option value="">Todos los meses</option>
+        <option value="0">Enero</option>
+        <option value="1">Febrero</option>
+        <option value="2">Marzo</option>
+        <option value="3">Abril</option>
+        <option value="4">Mayo</option>
+        <option value="5">Junio</option>
+        <option value="6">Julio</option>
+        <option value="7">Agosto</option>
+        <option value="8">Septiembre</option>
+        <option value="9">Octubre</option>
+        <option value="10">Noviembre</option>
+        <option value="11">Diciembre</option>
+      </select>
     </div>
 
-    <div class="legend" id="legend"></div>
-    <!-- Convenciones -->
+    <!-- Convenciones fijas -->
     <div class="legend" aria-label="Convenciones">
-      <span class="pill"><span class="dot" style="background:#FF66C4"></span> Boletines estadísticos</span>
-      <span class="pill"><span class="dot" style="background:#1797D1"></span> Eventos</span>
+      <span class="pill"><span class="dot" style="background:var(--evento-color)"></span> Evento</span>
+      <span class="pill"><span class="dot" style="background:var(--indicador-color)"></span> Indicador</span>
     </div>
 
     <div id="calendar"></div>
-    <div class="foot">* El filtro de datos se aplica por el año seleccionado.</div>
+    <div class="foot">* El filtro de datos se aplica por el año y el mes seleccionados.</div>
   </div>
 
   <!-- FullCalendar JS -->
@@ -109,15 +121,17 @@
 
   <script>
   (function(){
-    // =================== CONFIG ===================
     const SERVICE_BASE = "https://services7.arcgis.com/lsxbLWF2l19Rmhqj/arcgis/rest/services/CalendarView/FeatureServer";
     const LAYER_ID = 0;
     const OUT_FIELDS = ["objectid","title","start_datetime","end_datetime","url","status","category","color","CreationDate"];
 
-    // Colores por categoría (fallback si no viene 'color')
-    const CATEGORY_COLORS = { "Evento":"#1797D1", "Indicador":"#FF66C4" };
+    // Solo se usan como fallback y para la convención visual.
+    // No alteran el color si el servicio ya entrega un color por registro.
+    const CATEGORY_COLORS = {
+      "Evento":"#1797D1",
+      "Indicador":"#FF66C4"
+    };
 
-    // =================== UTIL =====================
     function buildYearRange(){
       const now = new Date();
       const current = now.getUTCFullYear();
@@ -125,15 +139,27 @@
       for(let y=current-4; y<=current+2; y++) years.push(y);
       return {years, current};
     }
+
     function getYearUtcRange(year){
       const start = new Date(Date.UTC(year,0,1,0,0,0));
       const end   = new Date(Date.UTC(year+1,0,1,0,0,0));
       return {start,end};
     }
-    function msToIso(ms){ if(ms==null) return null; return new Date(ms).toISOString(); }
 
-    // ============== DATOS DESDE AGOL =============
-    // *** IMPORTANTE: se filtra por CreationDate (como acordamos) ***
+    function msToIso(ms){
+      if(ms == null) return null;
+      return new Date(ms).toISOString();
+    }
+
+    function getSelectedMonth(){
+      const value = document.getElementById('monthSelect').value;
+      return value === '' ? null : parseInt(value, 10);
+    }
+
+    function getSelectedYear(){
+      return parseInt(document.getElementById('yearSelect').value, 10);
+    }
+
     async function fetchEventsByYear_CreationDate(year){
       const {start,end} = getYearUtcRange(year);
       const where =
@@ -148,6 +174,7 @@
         returnGeometry: false,
         f: 'json'
       });
+
       const resp = await fetch(`${url}?${params.toString()}`);
       if(!resp.ok) throw new Error(`AGOL query error ${resp.status}`);
       const data = await resp.json();
@@ -155,14 +182,15 @@
     }
 
     function toCalendarEvents(features){
-      return features.map(f=>{
+      return features.map(f => {
         const a = f.attributes || {};
         const start = msToIso(a.start_datetime);
         let end = msToIso(a.end_datetime);
+
         if(!end && start){
-          end = new Date(new Date(start).getTime() + 60*60*1000).toISOString(); // +1h
+          end = new Date(new Date(start).getTime() + 60*60*1000).toISOString();
         }
-        // color: prioriza 'color', luego por categoría, luego azul por defecto
+
         const col = (a.color && /^#?[0-9A-Fa-f]{3,6}$/.test(a.color))
           ? (a.color.startsWith('#') ? a.color : `#${a.color}`)
           : (CATEGORY_COLORS[a.category] || '#1797D1');
@@ -173,31 +201,34 @@
           start,
           end,
           url: a.url || null,
-          extendedProps: { category: a.category, status: a.status },
+          extendedProps: {
+            category: a.category,
+            status: a.status
+          },
           color: col
         };
       });
     }
 
-    // =================== INIT UI ==================
     document.addEventListener('DOMContentLoaded', async function(){
-      // Selector de año
       const {years, current} = buildYearRange();
       const yearSel = document.getElementById('yearSelect');
-      years.forEach(y=>{
-        const o = document.createElement('option');
-        o.value = y; o.textContent = y;
-        yearSel.appendChild(o);
+      const monthSel = document.getElementById('monthSelect');
+      const searchBox = document.getElementById('searchBox');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const calendarEl = document.getElementById('calendar');
+
+      years.forEach(y => {
+        const option = document.createElement('option');
+        option.value = y;
+        option.textContent = y;
+        yearSel.appendChild(option);
       });
       yearSel.value = String(current);
 
-      const calendarEl = document.getElementById('calendar');
-
-      // Botones prev/next personalizados
-      let calendar; // se declara antes para acceder en handlers
+      let calendar;
       const customPrev = { text: '⟨', click(){ calendar.prev(); } };
       const customNext = { text: '⟩', click(){ calendar.next(); } };
-
       const isSmall = window.innerWidth < 640;
 
       calendar = new FullCalendar.Calendar(calendarEl, {
@@ -219,11 +250,10 @@
         dayMaxEventRows: false,
         eventDisplay: 'block',
         displayEventEnd: true,
-        // Vistas: Mes y Semana sin fines de semana
         views: {
           dayGridMonth: { weekends: false },
           timeGridWeek: { weekends: false },
-          multiMonthYear: {  // Año completo (12 meses)
+          multiMonthYear: {
             type: 'multiMonthYear',
             multiMonthMaxColumns: 4,
             multiMonthMinWidth: 180,
@@ -242,63 +272,65 @@
 
       calendar.render();
 
-      // Carga y filtros
-      async function loadYear(year){
-        const features = await fetchEventsByYear_CreationDate(year);
-        window.__ALL_EVENTS__ = toCalendarEvents(features);
-
-        // Aplica filtros (texto/categoría) sobre el nuevo set del año
-        applyFilters();
-
-        // --- IMPORTANTE ---
-        // Al cambiar el año, mueve la vista a ese año manteniendo el mes actual.
-        // Si estás en vista "Año" (multiMonthYear), lleva a enero del año seleccionado.
-        const currentDate = calendar.getDate(); // fecha actual de la vista (puede estar en 2026, etc.)
+      function gotoSelectedPeriod(){
+        const year = getSelectedYear();
+        const month = getSelectedMonth();
 
         if(calendar.view.type === 'multiMonthYear'){
           calendar.gotoDate(`${year}-01-01`);
-        } else {
-          // Mantiene el mes y se ubica en el día 1 de ese mes, pero en el año seleccionado
-          calendar.gotoDate(new Date(year, currentDate.getMonth(), 1));
+          return;
         }
-      }
 
-      function renderLegend(events){
-        const legend = document.getElementById('legend');
-        legend.innerHTML = '';
-        const seen = new Map();
-        events.forEach(ev=>{
-          const key = ev.extendedProps.category || 'Sin categoría';
-          if(!seen.has(key)) seen.set(key, ev.color || CATEGORY_COLORS[key] || '#64748b');
-        });
-        const frag = document.createDocumentFragment();
-        seen.forEach((val,key)=>{
-          const pill = document.createElement('span');
-          pill.className = 'pill';
-          pill.innerHTML = `<span class="dot" style="background:${val}"></span> ${key}`;
-          frag.appendChild(pill);
-        });
-        legend.appendChild(frag);
+        if(month === null){
+          const currentDate = calendar.getDate();
+          calendar.gotoDate(new Date(year, currentDate.getMonth(), 1));
+          return;
+        }
+
+        calendar.gotoDate(new Date(year, month, 1));
       }
 
       function applyFilters(){
-        const term = (document.getElementById('searchBox').value || '').toLowerCase().trim();
-        const cat  = (document.getElementById('categoryFilter').value || '').toLowerCase().trim();
-        const src = (window.__ALL_EVENTS__ || []).filter(ev=>{
-          const okTitle = !term || (ev.title||'').toLowerCase().includes(term);
-          const okCat   = !cat  || ((ev.extendedProps.category||'').toLowerCase() === cat);
-          return okTitle && okCat;
+        const term = (searchBox.value || '').toLowerCase().trim();
+        const cat  = (categoryFilter.value || '').toLowerCase().trim();
+        const month = getSelectedMonth();
+
+        const filtered = (window.__ALL_EVENTS__ || []).filter(ev => {
+          const okTitle = !term || (ev.title || '').toLowerCase().includes(term);
+          const okCat = !cat || ((ev.extendedProps.category || '').toLowerCase() === cat);
+
+          let okMonth = true;
+          if(month !== null){
+            if(!ev.start){
+              okMonth = false;
+            } else {
+              const eventDate = new Date(ev.start);
+              okMonth = eventDate.getUTCMonth() === month;
+            }
+          }
+
+          return okTitle && okCat && okMonth;
         });
+
         calendar.removeAllEventSources();
-        calendar.addEventSource(src);
-        renderLegend(src);
+        calendar.addEventSource(filtered);
       }
 
-      document.getElementById('searchBox').addEventListener('input', applyFilters);
-      document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-      yearSel.addEventListener('change', ()=> loadYear(parseInt(yearSel.value,10)));
+      async function loadYear(year){
+        const features = await fetchEventsByYear_CreationDate(year);
+        window.__ALL_EVENTS__ = toCalendarEvents(features);
+        applyFilters();
+        gotoSelectedPeriod();
+      }
 
-      // Carga inicial
+      searchBox.addEventListener('input', applyFilters);
+      categoryFilter.addEventListener('change', applyFilters);
+      monthSel.addEventListener('change', () => {
+        applyFilters();
+        gotoSelectedPeriod();
+      });
+      yearSel.addEventListener('change', () => loadYear(getSelectedYear()));
+
       loadYear(current);
     });
   })();
